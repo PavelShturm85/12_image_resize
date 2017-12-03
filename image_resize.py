@@ -3,20 +3,20 @@ import argparse
 from PIL import Image
 
 
-def createParser():
-        parser = argparse.ArgumentParser(
-            description='Module for resize image.')
-        parser.add_argument(
-            'image', help='Where get the image.')
-        parser.add_argument(
-            '-w', '--width', type=int, help='Input new width image.')
-        parser.add_argument(
-            '-he', '--height', type=int, help='Input new height image.')
-        parser.add_argument(
-            '-sc', '--scale', type=float, help='Input how scale image.')
-        parser.add_argument(
-            '-out', '--output', help='Where to put the image.')
-        return parser
+def create_parser():
+    parser = argparse.ArgumentParser(
+        description='Module for resize image.')
+    parser.add_argument(
+        'image', help='Where get the image.')
+    parser.add_argument(
+        '-w', '--width', type=int, help='Input new width image.')
+    parser.add_argument(
+        '-he', '--height', type=int, help='Input new height image.')
+    parser.add_argument(
+        '-sc', '--scale', type=float, help='Input how scale image.')
+    parser.add_argument(
+        '-out', '--output', help='Where to put the image.')
+    return parser
 
 
 def get_image(path_to_original):
@@ -25,13 +25,10 @@ def get_image(path_to_original):
 
 def get_new_size(original_image,
                  new_width,
-                 new_height,
-                 scale):
+                 new_height):
 
     width_original, height_original = original_image.size
-    if new_width and new_height and scale:
-        raise RuntimeError('You must use scale without width or height!')
-    elif new_width and new_height:
+    if new_width and new_height:
         if width_original / height_original != new_width / new_height:
             print('***The proportions do not match the original image.***')
         new_size = (new_width, new_height)
@@ -41,11 +38,11 @@ def get_new_size(original_image,
     elif new_height:
         width = int(new_height * width_original / height_original)
         new_size = (width, new_height)
-    elif scale:
-        new_size = [round(scale * s) for s in original_image.size]
-    else:
-        raise RuntimeError('Width or height or scale required!')
     return new_size
+
+
+def get_new_scale_size(original_image, scale):
+    return [round(scale * size) for size in original_image.size]
 
 
 def resize_image(original_image, new_size):
@@ -70,20 +67,25 @@ def save_image(resized_image, path_to_result):
 
 
 if __name__ == '__main__':
-    parser = createParser()
+    parser = create_parser()
     namespace = parser.parse_args()
 
-    path_to_original = namespace.image
-    path_to_result = namespace.output
-    image = get_image(path_to_original)
-    new_size = get_new_size(image,
-                            namespace.width,
-                            namespace.height,
-                            namespace.scale)
+    image = get_image(namespace.image)
+
+    if namespace.scale and (namespace.width or namespace.height):
+        raise RuntimeError('You must use scale without width or height!')
+    elif not namespace.scale and not namespace.width and not namespace.height:
+        raise RuntimeError('Width or height or scale required!')
+    elif namespace.scale:
+        new_size = get_new_scale_size(image, namespace.scale)
+    else:
+        new_size = get_new_size(image,
+                                namespace.width,
+                                namespace.height)
 
     resized_image = resize_image(image, new_size)
 
     chosen_path_to_result = chose_path_to_result(
-        path_to_result, path_to_original, resized_image)
+        namespace.output, namespace.image, resized_image)
 
     save_image(resized_image, chosen_path_to_result)
