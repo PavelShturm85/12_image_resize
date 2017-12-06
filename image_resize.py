@@ -1,5 +1,6 @@
 import os
 import argparse
+from fractions import Fraction
 from PIL import Image
 
 
@@ -19,18 +20,12 @@ def create_parser():
     return parser
 
 
-def get_image(path_to_original):
-    return Image.open(path_to_original)
-
-
 def get_new_size(original_image,
                  new_width,
                  new_height):
 
     width_original, height_original = original_image.size
     if new_width and new_height:
-        if width_original / height_original != new_width / new_height:
-            print('***The proportions do not match the original image.***')
         new_size = (new_width, new_height)
     elif new_width:
         height = int(new_width * height_original / width_original)
@@ -45,11 +40,7 @@ def get_new_scale_size(original_image, scale):
     return [round(scale * size) for size in original_image.size]
 
 
-def resize_image(original_image, new_size):
-    return original_image.resize(new_size, Image.ANTIALIAS)
-
-
-def chose_path_to_result(path_to_result, path_to_original, resized_image):
+def choice_path_to_result(path_to_result, path_to_original, resized_image):
     if path_to_result:
         return path_to_result
     else:
@@ -70,7 +61,8 @@ if __name__ == '__main__':
     parser = create_parser()
     namespace = parser.parse_args()
 
-    image = get_image(namespace.image)
+    image = Image.open(namespace.image)
+    width_original, height_original = image.size
 
     if namespace.scale and (namespace.width or namespace.height):
         raise RuntimeError('You must use scale without width or height!')
@@ -79,13 +71,16 @@ if __name__ == '__main__':
     elif namespace.scale:
         new_size = get_new_scale_size(image, namespace.scale)
     else:
+        if Fraction(width_original, height_original) != Fraction(
+           namespace.width, namespace.height):
+            print('***The proportions do not match the original image.***')
         new_size = get_new_size(image,
                                 namespace.width,
                                 namespace.height)
 
-    resized_image = resize_image(image, new_size)
+    resized_image = image.resize(new_size, Image.ANTIALIAS)
 
-    chosen_path_to_result = chose_path_to_result(
+    chosen_path_to_result = choice_path_to_result(
         namespace.output, namespace.image, resized_image)
 
     save_image(resized_image, chosen_path_to_result)
